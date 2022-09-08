@@ -73,6 +73,14 @@ module.exports = {
       // gas: 90000000,
       gasPrice: 10000000000,
     },
+    auroraTest: {
+	    url: 'https://testnet.aurora.dev',
+      accounts: [sk],
+    },
+    aurora: {
+      url: 'https://mainnet.aurora.dev',
+      accounts: [sk],
+    }
   },
   docgen: {
     path: './docs',
