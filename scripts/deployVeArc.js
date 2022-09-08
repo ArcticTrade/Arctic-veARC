@@ -22,7 +22,7 @@ async function main() {
     
   const [deployer] = await hardhat.ethers.getSigners();
 
-  const veArcFactory = await hardhat.ethers.getContractFactory("veArc");
+  const veArcFactory = await hardhat.ethers.getContractFactory("veARC");
 
   console.log("Paramters: ");
   for ( var i in para) { console.log("    " + i + ": " + para[i]); }
