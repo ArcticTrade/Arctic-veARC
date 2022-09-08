@@ -334,12 +334,16 @@ contract veToken is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC7
     /// @notice create a new lock and generate a new nft
     /// @param _value amount of token to lock
     /// @param _unlockTime future timestamp to unlock
+    /// @param recipient recipient address of nft, 0x0 means msg.sender
     /// @return nftId id of generated nft, starts from 1
-    function createLock(uint256 _value, uint256 _unlockTime) external nonReentrant returns(uint256 nftId) {
+    function createLock(uint256 _value, uint256 _unlockTime, address recipient) external nonReentrant returns(uint256 nftId) {
         uint256 unlockTime = (_unlockTime / WEEK) * WEEK;
         nftNum ++;
         nftId = nftNum; // id starts from 1
-        _mint(msg.sender, nftId);
+        if (recipient == address(0)) {
+            recipient = msg.sender;
+        }
+        _mint(recipient, nftId);
         LockedBalance memory _locked = nftLocked[nftId];
         require(_value > 0, "Amount should >0");
         require(_locked.amount == 0, "Withdraw old tokens first");
