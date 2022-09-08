@@ -15,7 +15,8 @@ import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 
 // import "hardhat/console.sol";
 
-contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721Receiver {
+contract veToken is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721Receiver {
+
     using SafeERC20 for IERC20;
     
     /// @dev Point of epochs
@@ -89,7 +90,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
 
     uint256 public epoch;
 
-    /// @notice weight-curve(veARC amount) of total-weight for all nft
+    /// @notice weight-curve(veToken amount) of total-weight for all nft
     mapping(uint256 => Point) public pointHistory;
     mapping(uint256 => int256) public slopeChanges;
 
@@ -99,13 +100,13 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
 
     /// @notice total num of nft staked
     uint256 public stakeNum = 0; // +1 every time when calling stake(...)
-    /// @notice total amount of staked ARC
-    uint256 public stakeARCAmount = 0;
+    /// @notice total amount of staked Token
+    uint256 public stakeTokenAmount = 0;
 
     struct StakingStatus {
         uint256 stakingId;
         uint256 lockAmount;
-        uint256 lastVeARC;
+        uint256 lastVeToken;
         uint256 lastTouchBlock;
         uint256 lastTouchAccRewardPerShare;
     }
@@ -152,7 +153,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
     /// @notice constructor
     /// @param tokenAddr address of locked token
     /// @param _rewardInfo reward info
-    constructor(address tokenAddr, RewardInfo memory _rewardInfo) ERC721("ARC DAO veNFT", "veARC") {
+    constructor(address tokenAddr, RewardInfo memory _rewardInfo, string memory name, string memory symbol) ERC721(name, symbol) {
         token = tokenAddr;
         pointHistory[0].timestamp = block.timestamp;
 
@@ -359,7 +360,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
             _updateGlobalStatus();
             // this nft is staking
             // donot collect reward
-            stakeARCAmount += _value;
+            stakeTokenAmount += _value;
             stakingStatus[nftId].lockAmount += _value;
         }
     }
@@ -429,7 +430,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         // cancel lockedFrom in the weight-curve
         _checkPoint(nftFrom, LockedBalance({amount: lockedFrom.amount, end: lockedFrom.end}), LockedBalance({amount: 0, end: lockedFrom.end}));
 
-        // add locked ARC of nftFrom to nftTo
+        // add locked Token of nftFrom to nftTo
         _checkPoint(nftTo, LockedBalance({amount: lockedTo.amount, end: lockedTo.end}), LockedBalance({amount: lockedTo.amount + lockedFrom.amount, end: lockedTo.end}));
         nftLocked[nftFrom].amount = 0;
         nftLocked[nftTo].amount = lockedTo.amount + lockedFrom.amount;
@@ -471,11 +472,11 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         return _min;
     }
 
-    /// @notice weight of nft (veARC amount) at certain time after latest update of that nft
+    /// @notice weight of nft (veToken amount) at certain time after latest update of that nft
     /// @param nftId id of nft
     /// @param timestamp specified timestamp after latest update of this nft (amount change or end change)
     /// @return weight
-    function nftVeARC(uint256 nftId, uint256 timestamp) public view returns(uint256) {
+    function nftVeToken(uint256 nftId, uint256 timestamp) public view returns(uint256) {
         uint256 _epoch = nftPointEpoch[nftId];
         if (_epoch == 0) {
             return 0;
@@ -490,11 +491,11 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         }
     }
     
-    /// @notice weight of nft (veARC amount) at certain time
+    /// @notice weight of nft (veToken amount) at certain time
     /// @param nftId id of nft
     /// @param timestamp specified timestamp after latest update of this nft (amount change or end change)
     /// @return weight
-    function nftVeARCAt(uint256 nftId, uint256 timestamp) public view returns(uint256) {
+    function nftVeTokenAt(uint256 nftId, uint256 timestamp) public view returns(uint256) {
 
         uint256 targetEpoch = _findNftTimestampEpoch(nftId, timestamp);
         Point memory uPoint = nftPointHistory[nftId][targetEpoch];
@@ -508,7 +509,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         return uint256(uPoint.bias);
     }
 
-    function _totalVeARCAt(Point memory point, uint256 timestamp) internal view returns(uint256) {
+    function _totalVeTokenAt(Point memory point, uint256 timestamp) internal view returns(uint256) {
         Point memory lastPoint = point;
         uint256 ti = (lastPoint.timestamp / WEEK) * WEEK;
         for (uint24 i = 0; i < 255; i ++) {
@@ -536,17 +537,17 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
     /// @notice total weight of all nft at a certain time after check-point of all-nft-collection's curve
     /// @param timestamp specified blockNumber, "certain time" in above line
     /// @return total weight
-    function totalVeARC(uint256 timestamp) external view returns(uint256) {
+    function totalVeToken(uint256 timestamp) external view returns(uint256) {
         uint256 _epoch = epoch;
         Point memory lastPoint = pointHistory[_epoch];
         require(timestamp >= lastPoint.timestamp, "Too Early");
-        return _totalVeARCAt(lastPoint, timestamp);
+        return _totalVeTokenAt(lastPoint, timestamp);
     }
 
     /// @notice total weight of all nft at a certain time
     /// @param timestamp specified blockNumber, "certain time" in above line
     /// @return total weight
-    function totalVeARCAt(uint256 timestamp) external view returns(uint256) {
+    function totalVeTokenAt(uint256 timestamp) external view returns(uint256) {
         uint256 _epoch = epoch;
         uint256 targetEpoch = _findTimestampEpoch(timestamp, _epoch);
 
@@ -555,7 +556,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
             return 0;
         }
         if (targetEpoch == _epoch) {
-            return _totalVeARCAt(point, timestamp);
+            return _totalVeTokenAt(point, timestamp);
         } else {
             point.bias = point.bias - point.slope * (int256(timestamp) - int256(point.timestamp));
             if (point.bias < 0) {
@@ -569,17 +570,17 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         StakingStatus storage t = stakingStatus[nftId];
         t.lastTouchBlock = rewardInfo.lastTouchBlock;
         t.lastTouchAccRewardPerShare = rewardInfo.accRewardPerShare;
-        t.lastVeARC = t.lockAmount / MAXTIME * (Math.max(block.timestamp, nftLocked[nftId].end) - block.timestamp);
+        t.lastVeToken = t.lockAmount / MAXTIME * (Math.max(block.timestamp, nftLocked[nftId].end) - block.timestamp);
     }
 
-    /// @notice Collect pending reward for a single veARC-nft. 
+    /// @notice Collect pending reward for a single veToken-nft. 
     /// @param nftId The related position id.
     /// @param recipient who acquires reward
     function _collectReward(uint256 nftId, address recipient) internal {
         StakingStatus memory t = stakingStatus[nftId];
         
         _updateGlobalStatus();
-        uint256 reward = (t.lastVeARC * (rewardInfo.accRewardPerShare - t.lastTouchAccRewardPerShare)) / FixedPoints.Q128;
+        uint256 reward = (t.lastVeToken * (rewardInfo.accRewardPerShare - t.lastTouchAccRewardPerShare)) / FixedPoints.Q128;
         if (reward > 0) {
             IERC20(token).safeTransferFrom(
                 rewardInfo.provider,
@@ -621,11 +622,11 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         stakingStatus[nftId] = StakingStatus({
             stakingId: stakeNum,
             lockAmount: lockAmount,
-            lastVeARC: lockAmount / MAXTIME * (Math.max(block.timestamp, nftLocked[nftId].end) - block.timestamp),
+            lastVeToken: lockAmount / MAXTIME * (Math.max(block.timestamp, nftLocked[nftId].end) - block.timestamp),
             lastTouchBlock: rewardInfo.lastTouchBlock,
             lastTouchAccRewardPerShare: rewardInfo.accRewardPerShare
         });
-        stakeARCAmount += lockAmount;
+        stakeTokenAmount += lockAmount;
 
         emit Stake(nftId, msg.sender);
     }
@@ -643,15 +644,15 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         // opterator is msg.sender who is not approved
         _safeTransfer(address(this), msg.sender, nftId, "");
 
-        stakeARCAmount -= uint256(nftLocked[nftId].amount);
+        stakeTokenAmount -= uint256(nftLocked[nftId].amount);
         emit Unstake(nftId, msg.sender);
     }
 
     /// @notice get user's staking info
     /// @param user address of user
-    /// @return nftId id of veARC-nft
+    /// @return nftId id of veToken-nft
     /// @return stakingId id of stake
-    /// @return amount amount of locked ARC in nft
+    /// @return amount amount of locked Token in nft
     function stakingInfo(address user) external view returns(uint256 nftId, uint256 stakingId, uint256 amount) {
         nftId = stakedNft[user];
         if (nftId != 0) {
@@ -674,7 +675,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
             return;
         }
         uint256 currBlockNumber = Math.min(block.number, rewardInfo.endBlock);
-        if (stakeARCAmount == 0) {
+        if (stakeTokenAmount == 0) {
             rewardInfo.lastTouchBlock = currBlockNumber;
             return;
         }
@@ -682,7 +683,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         // tokenReward < 2^25 * 2^64 * 2^10, 15 years, 1000 r/block
         uint256 tokenReward = (currBlockNumber - rewardInfo.lastTouchBlock) * rewardInfo.rewardPerBlock;
         // tokenReward * Q128 < 2^(25 + 64 + 10 + 128)
-        rewardInfo.accRewardPerShare = rewardInfo.accRewardPerShare + ((tokenReward * FixedPoints.Q128) / stakeARCAmount);
+        rewardInfo.accRewardPerShare = rewardInfo.accRewardPerShare + ((tokenReward * FixedPoints.Q128) / stakeTokenAmount);
         
         rewardInfo.lastTouchBlock = currBlockNumber;
     }
@@ -709,7 +710,7 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
 
     /// @notice View function to see pending Reward for a staked NFT.
     /// @param nftId The staked NFT id.
-    /// @return reward ARC reward amount
+    /// @return reward Token reward amount
     function pendingRewardOfToken(uint256 nftId)
         public
         view
@@ -718,21 +719,21 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         reward = 0;
         StakingStatus memory t = stakingStatus[nftId];
         if (t.stakingId != 0) {
-            // we are sure that stakeARCAmount is not 0
+            // we are sure that stakeTokenAmount is not 0
             uint256 tokenReward = _getRewardBlockNum(
                 rewardInfo.lastTouchBlock,
                 block.number
             ) * rewardInfo.rewardPerBlock;
-            // we are sure that stakeARCAmount >= t.lockAmount > 0
-            uint256 rewardPerShare = rewardInfo.accRewardPerShare + (tokenReward * FixedPoints.Q128) / stakeARCAmount;
+            // we are sure that stakeTokenAmount >= t.lockAmount > 0
+            uint256 rewardPerShare = rewardInfo.accRewardPerShare + (tokenReward * FixedPoints.Q128) / stakeTokenAmount;
             // l * (currentAcc - lastAcc)
-            reward = (t.lastVeARC * (rewardPerShare - t.lastTouchAccRewardPerShare)) / FixedPoints.Q128;
+            reward = (t.lastVeToken * (rewardPerShare - t.lastTouchAccRewardPerShare)) / FixedPoints.Q128;
         }
     }
 
     /// @notice View function to see pending Reward for a user.
     /// @param user The related user address.
-    /// @return reward ARC reward amount
+    /// @return reward Token reward amount
     function pendingRewardOfAddress(address user)
         public
         view
@@ -745,10 +746,10 @@ contract veARC is Ownable, Multicall, ReentrancyGuard, ERC721Enumerable, IERC721
         }
     }
 
-    /// @notice collect pending reward if some user has a staked veARC-nft
+    /// @notice collect pending reward if some user has a staked veToken-nft
     function collect() external nonReentrant {
         uint256 nftId = stakedNft[msg.sender];
-        require(nftId != 0, 'No Staked veARC-nft!');
+        require(nftId != 0, 'No Staked veToken-nft!');
         _collectReward(nftId, msg.sender);
     }
 

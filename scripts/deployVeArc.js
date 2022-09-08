@@ -4,7 +4,7 @@ const BigNumber = require("bignumber.js");
 
 // example
 // HARDHAT_NETWORK='izumiTest' \
-//     node deployVeArc.js 0xD4D6F030520649c7375c492D37ceb56571f768D0 0.1 18 14909 20000
+//     node deployVeArc.js 0xD4D6F030520649c7375c492D37ceb56571f768D0 0.1 18 14909 20000 name symbl
 const v = process.argv
 const net = process.env.HARDHAT_NETWORK
 
@@ -15,6 +15,8 @@ var para = {
     rewardTokenDecimal: v[4],
     startBlock: v[5],
     endBlock: v[6],
+    name: v[7],
+    symbol: v[8],
 }
 
 
@@ -44,7 +46,9 @@ async function main() {
       lastTouchBlock: 0,
       startBlock: para.startBlock,
       endBlock: para.endBlock,
-    }
+    },
+    para.name,
+    para.symbol
   ]
 
   console.log('args: ', args);
