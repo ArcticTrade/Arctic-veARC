@@ -4,7 +4,7 @@ const BigNumber = require("bignumber.js");
 
 // example
 // HARDHAT_NETWORK='izumiTest' \
-//     node deployVeArc.js 0xD4D6F030520649c7375c492D37ceb56571f768D0 0.1 18 14909 20000 name symbl
+//     node deployveToken.js 0xD4D6F030520649c7375c492D37ceb56571f768D0 0.1 18 14909 20000 name symbl
 const v = process.argv
 const net = process.env.HARDHAT_NETWORK
 
@@ -24,7 +24,7 @@ async function main() {
     
   const [deployer] = await hardhat.ethers.getSigners();
 
-  const veArcFactory = await hardhat.ethers.getContractFactory("veARC");
+  const veTokenFactory = await hardhat.ethers.getContractFactory("veToken");
 
   console.log("Paramters: ");
   for ( var i in para) { console.log("    " + i + ": " + para[i]); }
@@ -53,10 +53,10 @@ async function main() {
 
   console.log('args: ', args);
 
-  const veArc = await veArcFactory.deploy(...args);
-  await veArc.deployed();
+  const veToken = await veTokenFactory.deploy(...args);
+  await veToken.deployed();
 
-  console.log("veArc Contract Address: " , veArc.address);
+  console.log("veToken Contract Address: " , veToken.address);
 
 }
 
